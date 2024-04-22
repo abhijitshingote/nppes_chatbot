@@ -8,6 +8,8 @@ from psycopg2.extras import execute_values
 from pgvector.psycopg2 import register_vector
 import numpy
 from psycopg2.extensions import register_adapter, AsIs
+import sys 
+print(sys.argv)
 def addapt_numpy_float64(numpy_float64):
     return AsIs(numpy_float64)
 def addapt_numpy_float32(numpy_float32):
@@ -35,10 +37,10 @@ cur.execute('select npi,provider_specialty from public.provider_data_nppes')
 
 tokenizer = AutoTokenizer.from_pretrained("cambridgeltl/SapBERT-from-PubMedBERT-fulltext")  
 model = AutoModel.from_pretrained("cambridgeltl/SapBERT-from-PubMedBERT-fulltext")
-query="Heart Doctor"
+query=sys.argv[1]
 toks = tokenizer.__call__(query, 
                                    padding="max_length", 
-                                   max_length=25, 
+                                   max_length=4, 
                                    truncation=True,
                                    return_tensors="pt",
                                    )
