@@ -2,3 +2,4 @@ Chinook_Sqlite.sql
 __pycache__
 test_zephyr_local_langchain.py
 Chino*
+.ipynb_checkpoints/

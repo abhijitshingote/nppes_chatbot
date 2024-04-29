@@ -11,7 +11,8 @@ from langchain_community.tools.sql_database.tool import QuerySQLDataBaseTool
 from langchain.chains import create_sql_query_chain
 from langchain_openai import ChatOpenAI
 import langchain
-langchain.debug = True
+from query_embedding import get_embedding_matches
+langchain.debug = False
 # call_function()
 
 load_dotenv()
@@ -47,24 +48,41 @@ postgresprompt = PromptTemplate.from_template(template)
 write_query = create_sql_query_chain(llm, db,prompt=postgresprompt)
 execute_query = QuerySQLDataBaseTool(db=db)
 
+chain = write_query | execute_query
 
+
+# answer_prompt = PromptTemplate.from_template(
+#     """Given the following user question, corresponding SQL query, and SQL result, answer the user question.
+
+# Question: {question}
+# SQL Query: {query}
+# SQL Result: {result}
+# Answer: """
+# )
+
+# answer = answer_prompt | llm | StrOutputParser()
+# chain = (
+#     RunnablePassthrough.assign(query=write_query).assign(
+#         result=itemgetter("query") | execute_query
+#     )
+#     | answer
+# )
+
+question="Find heart disease doctors for adults "
+response=chain.invoke({"question": question})
+print(response)
+
+embedding_matches=get_embedding_matches(question)
+print('Embedding Matches:\n',embedding_matches)
 
 answer_prompt = PromptTemplate.from_template(
-    """Given the following user question, corresponding SQL query, and SQL result, answer the user question.
+    """Given the following user question, and SQL results, answer the user question. If available list the NPI, name and specialty.
 
 Question: {question}
-SQL Query: {query}
-SQL Result: {result}
+SQL Result1: {response}
+SQL Result2: {embedding_matches}
 Answer: """
 )
 
 answer = answer_prompt | llm | StrOutputParser()
-chain = (
-    RunnablePassthrough.assign(query=write_query).assign(
-        result=itemgetter("query") | execute_query
-    )
-    | answer
-)
-
-response=chain.invoke({"question": "Find NPIs with names that specialize in Pediatrics in New Jersey"})
-print(response)
+print(answer.invoke({'question':question,'response':response,'embedding_matches':embedding_matches}))

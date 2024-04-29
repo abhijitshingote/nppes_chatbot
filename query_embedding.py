@@ -9,7 +9,7 @@ from pgvector.psycopg2 import register_vector
 import numpy
 from psycopg2.extensions import register_adapter, AsIs
 import sys 
-print(sys.argv)
+
 def addapt_numpy_float64(numpy_float64):
     return AsIs(numpy_float64)
 def addapt_numpy_float32(numpy_float32):
@@ -20,39 +20,45 @@ register_adapter(numpy.float64, addapt_numpy_float64)
 register_adapter(numpy.float32, addapt_numpy_float32)
 register_adapter(numpy.int64, addapt_numpy_int64)
 
-def get_engine():
-    postgres_con = f'postgresql+psycopg2://{MRF_STATS_USER}:{MRF_STATS_PASS}@{MRF_STATS_HOST}/{MRF_STATS_DB}'
-    return create_engine(postgres_con)
-
-
 conn = psycopg2.connect(host='localhost', user='postgres',
                               password='mysecretpassword', 
                               dbname='nppes', port=5432)
 
+cur=conn.cursor()
 register_vector(conn)
 
-cur=conn.cursor()
-cur.execute('select npi,provider_specialty from public.provider_data_nppes')
+def get_query_embedding(query):
+    tokenizer = AutoTokenizer.from_pretrained("cambridgeltl/SapBERT-from-PubMedBERT-fulltext")  
+    model = AutoModel.from_pretrained("cambridgeltl/SapBERT-from-PubMedBERT-fulltext")
+    toks = tokenizer.__call__(query, 
+                                       padding="max_length", 
+                                       max_length=4, 
+                                       truncation=True,
+                                       return_tensors="pt",
+                                       )
+
+    all_embs = []
+    toks_cuda = {}
+    for k,v in toks.items():
+        toks_cuda[k] = v
+    cls_rep = model(**toks_cuda)[0][:,0,:] # use CLS representation as the embedding
+    all_embs.append(cls_rep.cpu().detach().numpy())
+    return all_embs[0][0]
+
+def get_embedding_matches(query):
+    query_embedding=get_query_embedding(query)
+    cur.execute("""SELECT pnn.*,pdn.provider_specialty from provider_data_nppes pdn inner join (select * from embeddings order by embedding <->  %s LIMIT 5) e using (npi) inner join provider_names_nppes pnn on (pdn.npi=pnn.npi)""", (query_embedding,))
+    results=cur.fetchall()
+    return results
+
+def get_specialty_matches_using_embeddings(query):
+    query_embedding=get_query_embedding(query)
+    cur.execute("""SELECT concat(split_part(pdn.provider_specialty,'|',1),' ',split_part(pdn.provider_specialty,'|',3)) from provider_data_nppes pdn inner join (select * from embeddings order by embedding <->  %s LIMIT 5) e using (npi) inner join provider_names_nppes pnn on (pdn.npi=pnn.npi) limit 2""", (query_embedding,))
+    results=cur.fetchall()
+    results = [x[0] for x in results]
+    return results
 
 
-tokenizer = AutoTokenizer.from_pretrained("cambridgeltl/SapBERT-from-PubMedBERT-fulltext")  
-model = AutoModel.from_pretrained("cambridgeltl/SapBERT-from-PubMedBERT-fulltext")
-query=sys.argv[1]
-toks = tokenizer.__call__(query, 
-                                   padding="max_length", 
-                                   max_length=4, 
-                                   truncation=True,
-                                   return_tensors="pt",
-                                   )
-
-print(toks)
-all_embs = []
-toks_cuda = {}
-for k,v in toks.items():
-    toks_cuda[k] = v
-cls_rep = model(**toks_cuda)[0][:,0,:] # use CLS representation as the embedding
-all_embs.append(cls_rep.cpu().detach().numpy())
-cur.execute("""SELECT pdn.* from provider_data_nppes pdn inner join (select * from embeddings order by embedding <->  %s LIMIT 5) e using (npi)""", (all_embs[0][0],))
-
-
-print(cur.fetchall())
+if __name__=='__main__':
+    results=get_specialty_matches_using_embeddings(sys.argv[1])
+    print(results)

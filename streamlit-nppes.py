@@ -43,7 +43,7 @@ execute_query = QuerySQLDataBaseTool(db=db)
 
 answer_prompt = PromptTemplate.from_template(
     """Given the following user question, corresponding SQL query, and SQL result, answer the user question.
-     If the answer contains details about a provider, include NPI, provider name and address of provider.
+     If the answer contains details about a provider, include NPI, provider name, specialty and address of provider.
      Include atleast 5 results where possible.
 
 Question: {question}
@@ -66,7 +66,7 @@ chain = (
 st.title("💬 Q&A with National Provider Registry(NPPES)")
 st.caption("I am slow coz i am running on Abi's laptop")
 if "messages" not in st.session_state:
-    st.session_state["messages"] = [{"role": "assistant", "content": "Ask me something like : Find NPIs with names that specialize in Pediatrics in New Jersey"}]
+    st.session_state["messages"] = [{"role": "assistant", "content": "Ask me something like : Help me find pediatricians near charlotte"}]
 
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
