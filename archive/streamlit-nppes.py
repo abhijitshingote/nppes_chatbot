@@ -14,10 +14,11 @@ from langchain_community.tools.sql_database.tool import QuerySQLDataBaseTool
 from langchain.chains import create_sql_query_chain
 from langchain_openai import ChatOpenAI
 import langchain
+import os
 langchain.debug = True
 
 load_dotenv()
-db = SQLDatabase.from_uri("postgresql://mdx:des!avengers@venom.des.mdx.med:5432/bi_smrf",schema='test_abi')
+db = SQLDatabase.from_uri(f"postgresql://mdx:{os.environ['mdxpass1']}@venom.des.mdx.med:5432/bi_smrf",schema='test_abi')
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
 template = '''You are a PostgreSQL expert. Given an input question, first create a syntactically correct PostgreSQL query to run, then look at the results of the query and return the answer to the input question.

@@ -3,25 +3,9 @@ from langchain_openai import ChatOpenAI
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_community.tools import DuckDuckGoSearchResults
 from langchain import hub
-from langchain_core.prompts import PromptTemplate
-from langchain.agents import AgentType,AgentExecutor,initialize_agent, create_tool_calling_agent
-load_dotenv()
-template="""
-================================ System Message ================================
-
-You are a helpful assistant
-
-============================= Messages Placeholder =============================
+from langchain.agents import AgentExecutor, create_tool_calling_agent
 
 
-================================ Human Message =================================
-
-
-============================= Messages Placeholder =============================
-
-
-"""
-prompt = PromptTemplate.from_template(template)
 wrapper = DuckDuckGoSearchAPIWrapper(region="de-de", time="d", max_results=2)
 search = DuckDuckGoSearchResults(api_wrapper=wrapper, source="news")
 
@@ -29,27 +13,19 @@ tools=[search.run]
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
 # Construct the tool calling agent
-# agent = create_tool_calling_agent(llm, tools, prompt)
-agent_chain = initialize_agent(
-    tools,
-    llm,
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    verbose=True,
-)
-agent_chain.run("Obama")
-# Create an agent executor by passing in the agent and tools
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+agent = create_tool_calling_agent(llm, tools, prompt)
+
 res=agent_executor.invoke(
     {
         "input": "Take 3 to the fifth power and multiply that by the sum of twelve and three, then square the whole result"
     }
 )
 
-print(res)
-# results=search.run("Obama")
+print(a)
+results=search.run("Obama")
 
-# print(results)
-
+print(results)
+load_dotenv()
 # Initialize the LLM from OpenAI (you will need an API key)
 # llm = OpenAI(api_key="your_openai_api_key")
 # llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)

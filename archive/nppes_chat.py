@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain.chains import create_sql_query_chain
 from langchain_community.utilities import SQLDatabase
 from langchain_community.tools.sql_database.tool import QuerySQLDataBaseTool
-
+import os
 from langchain.chains import create_sql_query_chain
 from langchain_openai import ChatOpenAI
 import langchain
@@ -17,7 +17,7 @@ langchain.debug = False
 
 load_dotenv()
 # db = SQLDatabase.from_uri("sqlite:///Chinook.db")
-db = SQLDatabase.from_uri("postgresql://mdx:des!avengers@venom.des.mdx.med:5432/bi_smrf",schema='test_abi')
+db = SQLDatabase.from_uri(f"postgresql://mdx:{os.environ['mdxpass1']}@venom.des.mdx.med:5432/bi_smrf",schema='test_abi')
 # print(db.dialect)
 # print(db.get_usable_table_names())
 # print(db.run("SELECT * FROM provider_data_nppes LIMIT 10;"))

@@ -1,10 +1,5 @@
-import numpy as np
-import torch
-from tqdm.auto import tqdm
-from transformers import AutoTokenizer, AutoModel  
+from transformers import AutoTokenizer, AutoModel
 import psycopg2 as psycopg2
-from sqlalchemy import create_engine,text
-from psycopg2.extras import execute_values
 from pgvector.psycopg2 import register_vector
 import numpy
 from psycopg2.extensions import register_adapter, AsIs
