@@ -25,6 +25,8 @@ from operator import itemgetter
 from langchain.chains import create_sql_query_chain
 from langchain_community.tools.sql_database.tool import QuerySQLDataBaseTool
 import os
+from langchain.memory import ChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
 langchain.debug = False
 
 db = SQLDatabase.from_uri(f"postgresql://mdx:{os.environ['mdxpass1']}@venom.des.mdx.med:5432/bi_smrf", schema='nppes_chatbot')
@@ -97,11 +99,19 @@ agent_executor = create_sql_agent(
     verbose=True,
     top_k=5,
     prefix="Ensure that you use specialties from the question as is in the SQL query. If specialties are involved use LIKE operator as much as you can. always only query for 5 records.")
+memory = ChatMessageHistory(session_id="test-session")
 
+agent_with_chat_history = RunnableWithMessageHistory(
+    agent_executor,
+    # This is needed because in most real world scenarios, a session id is needed
+    # It isn't really used here because we are using a simple in memory ChatMessageHistory
+    lambda session_id: memory,
+    input_messages_key="input",
+    history_messages_key="chat_history",
+)
 
 def get_overall_chain():
-    # return get_extract_specialty_chain() | get_new_specialty_chain() | get_rephrase_question_chain() | RunnablePassthrough.assign(question=itemgetter('final_question')) | get_sql_query_chain()
-    return get_extract_specialty_chain() | get_new_specialty_chain() | get_rephrase_question_chain() | agent_executor
+    return get_extract_specialty_chain() | get_new_specialty_chain() | get_rephrase_question_chain() | agent_with_chat_history
 
 
 def get_determine_route_chain():
@@ -136,5 +146,5 @@ full_chain = get_determine_route_chain() | RunnableLambda(route)
 
 if __name__ == '__main__':
     result = full_chain.invoke(
-        {'input': 'Are you friendlier than the terminator?'})
+        {'input': 'Name kids doctors in Charlotte?'},config={"configurable": {"session_id": "<foo>"}})
     print(result)
